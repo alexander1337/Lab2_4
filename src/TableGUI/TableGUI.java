@@ -58,7 +58,29 @@ public class TableGUI extends JFrame {
 		insertButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				
+				JFrame insertForm = new JFrame();
+				JPanel insertPanel = new JPanel();
+				JPanel labelsPanel = new JPanel();
+				JPanel textFieldsPanel = new JPanel();
+				insertPanel.setLayout(new BorderLayout());
+				labelsPanel.setLayout(new GridLayout(4,1));
+				textFieldsPanel.setLayout(new GridLayout(4,1));
+				labelsPanel.add(new JLabel("Full name:"));
+				textFieldsPanel.add(new JTextField());
+				labelsPanel.add(new JLabel("Date of Birth:"));
+				textFieldsPanel.add(new JTextField());
+				labelsPanel.add(new JLabel("ID:"));
+				textFieldsPanel.add(new JTextField());
+				labelsPanel.add(new JLabel("Photo:"));
+				textFieldsPanel.add(new JTextField());
+				insertPanel.add(labelsPanel, "West");
+				insertPanel.add(textFieldsPanel, "Center");
+				insertPanel.add(new JButton("OK"), "South");
+				insertForm.add(insertPanel);
+				insertForm.setSize(400, 200);
+				insertForm.setVisible(true);
+								
+							
 			}
 		});
 
