@@ -83,11 +83,9 @@ class DictionaryEntry extends DictionaryElem {
 class SwingGUI5Model {
 
 	private DefaultTreeModel theModel;
-	private static String alphabet = new String("ABCDEFGIJKLMNOPRSTUVWXYZ");
+	private static String alphabet = new String("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 	private DefaultMutableTreeNode theRoot;
-
 	public SwingGUI5Model() {
-
 	}
 
 	public TreePath findPerson(String data) {
