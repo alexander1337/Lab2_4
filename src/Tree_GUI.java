@@ -1,10 +1,10 @@
-
 import java.awt.event.*;
 import java.awt.*;
 import java.util.Enumeration;
 
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.text.JTextComponent;
 import javax.swing.tree.*;
 
 class DictionaryAnchor {
@@ -45,12 +45,18 @@ class DictionaryTopic extends DictionaryElem {
 
 class DictionaryEntry extends DictionaryElem {
 	protected String theName;
-
-	protected String theAddress;
-
-	public DictionaryEntry(String name, String address) {
+	protected String birth;
+	protected String photo;
+	//protected String theAddress;
+	protected String id;
+	
+	public DictionaryEntry(String name, String birth, String id, String photo) {
 		theName = name;
-		theAddress = address;
+		this.birth = birth;
+		this.id = id;
+		this.photo = photo;
+		//theAddress = address;
+		
 	}
 
 	public DictionaryEntry(String completeStr) {
@@ -62,7 +68,7 @@ class DictionaryEntry extends DictionaryElem {
 		}
 
 		theName = completeStr.substring(0, delim_index);
-		theAddress = completeStr.substring(delim_index);
+		//theAddress = completeStr.substring(delim_index);
 	}
 
 	public String getType() {
@@ -74,7 +80,7 @@ class DictionaryEntry extends DictionaryElem {
 	}
 
 	public String toString() {
-		return theName + " " + theAddress;
+		return theName + " " + birth + " " + id + " " + photo;
 	}
 
 }
@@ -85,6 +91,7 @@ class SwingGUI5Model {
 	private DefaultTreeModel theModel;
 	private static String alphabet = new String("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 	private DefaultMutableTreeNode theRoot;
+
 	public SwingGUI5Model() {
 	}
 
@@ -118,14 +125,14 @@ class SwingGUI5Model {
 		}
 	}
 
-	public TreePath insertPerson(String data) {
+	public TreePath insertPerson(String name, String birth, String id, String photo) {
 		TreePath path;
 		DictionaryAnchor anchor = new DictionaryAnchor();
 
 		anchor.topic = null;
 		anchor.entry = null;
 
-		DictionaryEntry new_entry = new DictionaryEntry(data);
+		DictionaryEntry new_entry = new DictionaryEntry(name, birth, id, photo);
 
 		if (this.findEntry(new_entry, anchor)) {
 			// found such a person
@@ -232,6 +239,10 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 	private JButton deleteButton;
 	private JButton findButton;
 	private JButton editButton;
+	JTextField nameField;
+	JTextField dateField;
+	JTextField idField;
+	JTextField photoField;
 
 	private JButton changeLookFeelButton;
 
@@ -251,7 +262,6 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		theTree.addTreeSelectionListener(this);
 		int mode = TreeSelectionModel.SINGLE_TREE_SELECTION;
 		theTree.getSelectionModel().setSelectionMode(mode);
-
 		theTextArea = new JTextArea();
 		JPanel labels = new JPanel();
 		JPanel panel = new JPanel();
@@ -263,13 +273,14 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		form.setLayout(new BorderLayout());
 
 		labels.add(new JLabel("Full name:"));
-		textFields.add(new JTextField());
+		textFields.add(nameField =  new JTextField());
 		labels.add(new JLabel("Date of Birth:"));
-		textFields.add(new JTextField());
+		textFields.add(dateField = new JTextField());
 		labels.add(new JLabel("ID:"));
-		textFields.add(new JTextField());
+		textFields.add(idField = new JTextField());
 		labels.add(new JLabel("Photo:"));
-		textFields.add(new JTextField());
+		textFields.add(
+				photoField = new JTextField());
 		form.add(labels, "West");
 		form.add(textFields, "Center");
 		panel.add(new JScrollPane(theTree));
@@ -352,27 +363,44 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 			}
 		} else {
 			if (event.getSource().equals(insertButton)) {
-JFrame insertForm = new JFrame();
-JPanel insertPanel = new JPanel();
-JPanel labelsPanel = new JPanel();
-JPanel textFieldsPanel = new JPanel();
-insertPanel.setLayout(new BorderLayout());
-labelsPanel.setLayout(new GridLayout(4,1));
-textFieldsPanel.setLayout(new GridLayout(4,1));
-labelsPanel.add(new JLabel("Full name:"));
-textFieldsPanel.add(new JTextField());
-labelsPanel.add(new JLabel("Date of Birth:"));
-textFieldsPanel.add(new JTextField());
-labelsPanel.add(new JLabel("ID:"));
-textFieldsPanel.add(new JTextField());
-labelsPanel.add(new JLabel("Photo:"));
-textFieldsPanel.add(new JTextField());
-insertPanel.add(labelsPanel, "West");
-insertPanel.add(textFieldsPanel, "Center");
-insertPanel.add(new JButton("OK"), "South");
-insertForm.add(insertPanel);
-insertForm.setSize(400, 200);
-insertForm.setVisible(true);
+				JButton okButton;
+				JTextField nameField;
+				JTextField dateField;
+				JTextField idField;
+				JTextField photoField;
+				JFrame insertForm = new JFrame();
+				JPanel insertPanel = new JPanel();
+				JPanel labelsPanel = new JPanel();
+				JPanel textFieldsPanel = new JPanel();
+				insertPanel.setLayout(new BorderLayout());
+				labelsPanel.setLayout(new GridLayout(4, 1));
+				textFieldsPanel.setLayout(new GridLayout(4, 1));
+				labelsPanel.add(new JLabel("Full name:"));
+				textFieldsPanel.add(nameField = new JTextField());
+				labelsPanel.add(new JLabel("Date of Birth:"));
+				textFieldsPanel.add(dateField = new JTextField());
+				labelsPanel.add(new JLabel("ID:"));
+				textFieldsPanel.add(idField = new JTextField());
+				labelsPanel.add(new JLabel("Photo:"));
+				textFieldsPanel.add(photoField = new JTextField());
+				insertPanel.add(labelsPanel, "West");
+				insertPanel.add(textFieldsPanel, "Center");
+				insertPanel.add(okButton = new JButton("OK"), "South");
+				okButton.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// theAppModel.insertPerson(nameField.getText());
+						TreePath path = theAppModel.insertPerson(nameField.getText(), dateField.getText(), idField.getText(), photoField.getText());
+						if (path != null) {
+							theTree.scrollPathToVisible(path);
+						}
+						System.out.println("hi");
+						insertForm.setVisible(false);
+					}
+				});
+				insertForm.add(insertPanel);
+				insertForm.setSize(400, 200);
+				insertForm.setVisible(true);
 				// TreePath path = theAppModel.insertPerson(textVal);
 				// if (path != null) {
 				// theTree.scrollPathToVisible(path);
@@ -397,8 +425,6 @@ insertForm.setVisible(true);
 
 	}
 
-	
-
 	public void valueChanged(TreeSelectionEvent event) {
 		TreePath path = theTree.getSelectionPath();
 		if (path == null)
@@ -407,8 +433,14 @@ insertForm.setVisible(true);
 		DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) path.getLastPathComponent();
 
 		if (selectedNode != null) {
-			theTextArea.setText(selectedNode.toString());
-		}
+			nameField.setText(selectedNode.toString().split(" ")[0]);
+			dateField.setText(selectedNode.toString().split(" ")[1]);
+			idField.setText(selectedNode.toString().split(" ")[2]);
+			photoField.setText(selectedNode.toString().split(" ")[3]);
+
+
+
+			}
 
 	}
 }
