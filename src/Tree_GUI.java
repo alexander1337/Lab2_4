@@ -47,16 +47,16 @@ class DictionaryEntry extends DictionaryElem {
 	protected String theName;
 	protected String birth;
 	protected String photo;
-	//protected String theAddress;
+	// protected String theAddress;
 	protected String id;
-	
+
 	public DictionaryEntry(String name, String birth, String id, String photo) {
 		theName = name;
 		this.birth = birth;
 		this.id = id;
 		this.photo = photo;
-		//theAddress = address;
-		
+		// theAddress = address;
+
 	}
 
 	public DictionaryEntry(String completeStr) {
@@ -68,7 +68,7 @@ class DictionaryEntry extends DictionaryElem {
 		}
 
 		theName = completeStr.substring(0, delim_index);
-		//theAddress = completeStr.substring(delim_index);
+		// theAddress = completeStr.substring(delim_index);
 	}
 
 	public String getType() {
@@ -80,7 +80,19 @@ class DictionaryEntry extends DictionaryElem {
 	}
 
 	public String toString() {
-		return theName + " " + birth + " " + id + " " + photo;
+		return theName;
+	}
+
+	public String getBirth() {
+		return birth;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public String getPhoto() {
+		return photo;
 	}
 
 }
@@ -239,6 +251,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 	private JButton deleteButton;
 	private JButton findButton;
 	private JButton editButton;
+	private JButton saveButton;
 	JTextField nameField;
 	JTextField dateField;
 	JTextField idField;
@@ -273,14 +286,17 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		form.setLayout(new BorderLayout());
 
 		labels.add(new JLabel("Full name:"));
-		textFields.add(nameField =  new JTextField());
+		textFields.add(nameField = new JTextField());
+		nameField.setEditable(false);
 		labels.add(new JLabel("Date of Birth:"));
 		textFields.add(dateField = new JTextField());
+		dateField.setEditable(false);
 		labels.add(new JLabel("ID:"));
 		textFields.add(idField = new JTextField());
+		idField.setEditable(false);
 		labels.add(new JLabel("Photo:"));
-		textFields.add(
-				photoField = new JTextField());
+		textFields.add(photoField = new JTextField());
+		photoField.setEditable(false);
 		form.add(labels, "West");
 		form.add(textFields, "Center");
 		panel.add(new JScrollPane(theTree));
@@ -296,10 +312,12 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 
 		findButton = new JButton("Find");
 		findButton.addActionListener(this);
-
+		saveButton = new JButton("Save Changes");
+		saveButton.addActionListener(this);
+		saveButton.setEnabled(false);
 		editButton = new JButton("Edit Current Node");
 		editButton.addActionListener(this);
-		editButton.setEnabled(false);
+		editButton.setEnabled(true);
 
 		changeLookFeelButton = new JButton("change Look & Feel");
 		changeLookFeelButton.addActionListener(this);
@@ -309,6 +327,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		panelButton.add(findButton);
 		panelButton.add(editButton);
 		panelButton.add(changeLookFeelButton);
+		panelButton.add(saveButton);
 		contentPane.add(panelButton, "South");
 
 		return null;
@@ -390,7 +409,8 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 					@Override
 					public void actionPerformed(ActionEvent e) {
 						// theAppModel.insertPerson(nameField.getText());
-						TreePath path = theAppModel.insertPerson(nameField.getText(), dateField.getText(), idField.getText(), photoField.getText());
+						TreePath path = theAppModel.insertPerson(nameField.getText(), dateField.getText(),
+								idField.getText(), photoField.getText());
 						if (path != null) {
 							theTree.scrollPathToVisible(path);
 						}
@@ -404,6 +424,31 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				// TreePath path = theAppModel.insertPerson(textVal);
 				// if (path != null) {
 				// theTree.scrollPathToVisible(path);
+			}
+			if(event.getSource().equals(editButton)){
+				idField.setEditable(true);
+				photoField.setEditable(true);
+				nameField.setEditable(true);
+				dateField.setEditable(true);
+				saveButton.setEnabled(true);
+				editButton.setEnabled(false);
+			}
+			if(event.getSource().equals(saveButton)){
+				if (selectedNode.getParent() != null)
+					theAppModel.deletePerson(selectedNode);
+				TreePath path = theAppModel.insertPerson(nameField.getText(), dateField.getText(),
+						idField.getText(), photoField.getText());
+				if (path != null) {
+					theTree.scrollPathToVisible(path);
+				}
+				idField.setEditable(false);
+				photoField.setEditable(false);
+				nameField.setEditable(false);
+				dateField.setEditable(false);
+				saveButton.setEnabled(false);
+				editButton.setEnabled(true);
+				System.out.println("hi");
+				
 			}
 		}
 		if (event.getSource().equals(findButton)) {
@@ -420,6 +465,12 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		if (event.getSource().equals(deleteButton)) {
 			if (selectedNode.getParent() != null)
 				theAppModel.deletePerson(selectedNode);
+			dateField.setText("");
+			nameField.setText("");
+			idField.setText("");
+			photoField.setText("");
+			editButton.setEnabled(false);
+			
 			return;
 		}
 
@@ -432,17 +483,25 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 
 		DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) path.getLastPathComponent();
 
-		if (selectedNode != null) {
-			nameField.setText(selectedNode.toString().split(" ")[0]);
-			dateField.setText(selectedNode.toString().split(" ")[1]);
-			idField.setText(selectedNode.toString().split(" ")[2]);
-			photoField.setText(selectedNode.toString().split(" ")[3]);
-
-
-
-			}
+		if (selectedNode != null && selectedNode.getUserObject() instanceof DictionaryEntry) {
+			nameField.setText(((DictionaryEntry) selectedNode.getUserObject()).getValue());
+			dateField.setText(((DictionaryEntry) selectedNode.getUserObject()).getBirth());
+			idField.setText(((DictionaryEntry) selectedNode.getUserObject()).getId());
+			photoField.setText(((DictionaryEntry) selectedNode.getUserObject()).getPhoto());
+			editButton.setEnabled(true);
+			deleteButton.setEnabled(true);
+			saveButton.setEnabled(false);
+		} else {
+			nameField.setText("");
+			dateField.setText("");
+			idField.setText("");
+			photoField.setText("");
+			editButton.setEnabled(false);
+			deleteButton.setEnabled(false);
+		}
 
 	}
+
 }
 
 // ------------------------------------------------------------—
