@@ -418,7 +418,8 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				dateChooser1.setDateFormatString("dd.MM.yyyy");
 				
 				JFormattedTextField idField;
-				JButton okButton;
+				JButton okButton = null;
+				
 				JTextField nameField;
 				//JTextField idField;
 				JTextField photoField;
@@ -441,6 +442,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				insertPanel.add(labelsPanel, "West");
 				insertPanel.add(textFieldsPanel, "Center");
 				insertPanel.add(okButton = new JButton("OK"), "South");
+				
 				okButton.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
