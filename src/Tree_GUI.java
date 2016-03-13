@@ -382,6 +382,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 			}
 		} else {
 			if (event.getSource().equals(insertButton)) {
+				
 				JButton okButton;
 				JTextField nameField;
 				JTextField dateField;
@@ -404,7 +405,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				textFieldsPanel.add(photoField = new JTextField());
 				insertPanel.add(labelsPanel, "West");
 				insertPanel.add(textFieldsPanel, "Center");
-				insertPanel.add(okButton = new JButton("OK"), "South");
+				insertPanel.add(okButton = new JButton("OK"), "South"); 
 				okButton.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
@@ -421,6 +422,8 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				insertForm.add(insertPanel);
 				insertForm.setSize(400, 200);
 				insertForm.setVisible(true);
+				
+				
 				// TreePath path = theAppModel.insertPerson(textVal);
 				// if (path != null) {
 				// theTree.scrollPathToVisible(path);
@@ -452,11 +455,39 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 			}
 		}
 		if (event.getSource().equals(findButton)) {
-
-			TreePath path = theAppModel.findPerson(textVal);
-			if (path != null) {
-				theTree.scrollPathToVisible(path);
-			}
+			saveButton.setEnabled(false);
+			editButton.setEnabled(true);
+			JTextField findField;
+			JButton okButton; 
+			JFrame findForm = new JFrame();
+			JPanel findPanel = new JPanel();
+			JPanel labelsPanel = new JPanel();
+			JPanel textFieldsPanel = new JPanel();
+			findPanel.setLayout(new BorderLayout());
+			labelsPanel.setLayout(new GridLayout(1, 1));
+			textFieldsPanel.setLayout(new GridLayout(1, 1));
+			labelsPanel.add(new JLabel("Search:"));
+			textFieldsPanel.add(findField = new JTextField());			
+			findPanel.add(labelsPanel, "West");
+			findPanel.add(textFieldsPanel, "Center");
+			findPanel.add(okButton = new JButton("OK"), "South");
+			okButton.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					TreePath path = theAppModel.findPerson(findField.getText());
+					if (path != null) {
+						theTree.scrollPathToVisible(path);
+						java.awt.Toolkit tk = Toolkit.getDefaultToolkit();
+						tk.beep();
+						System.out.println("hello");
+						findForm.setVisible(true);
+					}
+				}
+			});
+			findForm.add(findPanel);
+			findForm.setSize(400, 100);
+			findForm.setVisible(true);
+			
 		}
 
 		if (selectedNode == null)
