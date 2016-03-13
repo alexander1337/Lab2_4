@@ -1,7 +1,8 @@
 import java.awt.event.*;
 import java.awt.*;
+import java.util.Date;
 import java.util.Enumeration;
-
+import com.toedter.calendar.JDateChooser;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.text.JTextComponent;
@@ -45,12 +46,12 @@ class DictionaryTopic extends DictionaryElem {
 
 class DictionaryEntry extends DictionaryElem {
 	protected String theName;
-	protected String birth;
+	protected Date birth;
 	protected String photo;
 	// protected String theAddress;
 	protected String id;
 
-	public DictionaryEntry(String name, String birth, String id, String photo) {
+	public DictionaryEntry(String name, Date birth, String id, String photo) {
 		theName = name;
 		this.birth = birth;
 		this.id = id;
@@ -83,7 +84,7 @@ class DictionaryEntry extends DictionaryElem {
 		return theName;
 	}
 
-	public String getBirth() {
+	public Date getBirth() {
 		return birth;
 	}
 
@@ -137,7 +138,7 @@ class SwingGUI5Model {
 		}
 	}
 
-	public TreePath insertPerson(String name, String birth, String id, String photo) {
+	public TreePath insertPerson(String name, Date birth, String id, String photo) {
 		TreePath path;
 		DictionaryAnchor anchor = new DictionaryAnchor();
 
@@ -244,7 +245,7 @@ class SwingGUI5Model {
 // -----------------------------------------------------------—
 class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener {
 	private SwingGUI5Model theAppModel;
-
+	private JDateChooser dateChooser;
 	private JTree theTree;
 	private JTextArea theTextArea;
 	private JButton insertButton;
@@ -253,7 +254,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 	private JButton editButton;
 	private JButton saveButton;
 	JTextField nameField;
-	JTextField dateField;
+	//JTextField dateField;
 	JTextField idField;
 	JTextField photoField;
 
@@ -284,13 +285,18 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		labels.setLayout(new GridLayout(4, 1));
 		panel.setLayout(new GridLayout(1, 2));
 		form.setLayout(new BorderLayout());
-
+		dateChooser = new JDateChooser();
+		dateChooser.setBounds(20, 20, 200, 20);
+		dateChooser.setDateFormatString("dd.MM.yyyy");
+		
 		labels.add(new JLabel("Full name:"));
 		textFields.add(nameField = new JTextField());
 		nameField.setEditable(false);
 		labels.add(new JLabel("Date of Birth:"));
-		textFields.add(dateField = new JTextField());
-		dateField.setEditable(false);
+		//textFields.add(dateField = new JTextField());
+		//dateField.setEditable(false);
+		textFields.add(dateChooser);
+		dateChooser.setEnabled(false);
 		labels.add(new JLabel("ID:"));
 		textFields.add(idField = new JTextField());
 		idField.setEditable(false);
@@ -303,6 +309,9 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		panel.add(form);
 		contentPane.add(panel, "Center");
 		JPanel panelButton = new JPanel();
+		
+		//dateField.add(dateChooser);
+		
 
 		insertButton = new JButton("Insert Person");
 		insertButton.addActionListener(this);
@@ -317,7 +326,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		saveButton.setEnabled(false);
 		editButton = new JButton("Edit Current Node");
 		editButton.addActionListener(this);
-		editButton.setEnabled(true);
+		editButton.setEnabled(false);
 
 		changeLookFeelButton = new JButton("change Look & Feel");
 		changeLookFeelButton.addActionListener(this);
@@ -335,7 +344,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 
 	public SwingGUI5(SwingGUI5Model appModel) {
 		theAppModel = appModel;
-
+		
 		setTitle("Tree example with model");
 		setSize(800, 200);
 
@@ -357,6 +366,8 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 	}
 
 	public void actionPerformed(ActionEvent event) {
+		
+		
 		DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) theTree.getLastSelectedPathComponent();
 
 		String textVal = "";
@@ -382,10 +393,12 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 			}
 		} else {
 			if (event.getSource().equals(insertButton)) {
-				
+				JDateChooser dateChooser1;
+				dateChooser1 = new JDateChooser();
+				dateChooser1.setBounds(20, 20, 200, 20);
+				dateChooser1.setDateFormatString("dd.MM.yyyy");
 				JButton okButton;
 				JTextField nameField;
-				JTextField dateField;
 				JTextField idField;
 				JTextField photoField;
 				JFrame insertForm = new JFrame();
@@ -398,7 +411,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				labelsPanel.add(new JLabel("Full name:"));
 				textFieldsPanel.add(nameField = new JTextField());
 				labelsPanel.add(new JLabel("Date of Birth:"));
-				textFieldsPanel.add(dateField = new JTextField());
+				textFieldsPanel.add(dateChooser1);
 				labelsPanel.add(new JLabel("ID:"));
 				textFieldsPanel.add(idField = new JTextField());
 				labelsPanel.add(new JLabel("Photo:"));
@@ -410,7 +423,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 					@Override
 					public void actionPerformed(ActionEvent e) {
 						// theAppModel.insertPerson(nameField.getText());
-						TreePath path = theAppModel.insertPerson(nameField.getText(), dateField.getText(),
+						TreePath path = theAppModel.insertPerson(nameField.getText(), dateChooser1.getDate(),
 								idField.getText(), photoField.getText());
 						if (path != null) {
 							theTree.scrollPathToVisible(path);
@@ -432,14 +445,15 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				idField.setEditable(true);
 				photoField.setEditable(true);
 				nameField.setEditable(true);
-				dateField.setEditable(true);
+				//dateField.setEditable(true);
 				saveButton.setEnabled(true);
+				dateChooser.setEnabled(true);
 				editButton.setEnabled(false);
 			}
 			if(event.getSource().equals(saveButton)){
 				if (selectedNode.getParent() != null)
 					theAppModel.deletePerson(selectedNode);
-				TreePath path = theAppModel.insertPerson(nameField.getText(), dateField.getText(),
+				TreePath path = theAppModel.insertPerson(nameField.getText(), dateChooser.getDate(),
 						idField.getText(), photoField.getText());
 				if (path != null) {
 					theTree.scrollPathToVisible(path);
@@ -447,27 +461,31 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				idField.setEditable(false);
 				photoField.setEditable(false);
 				nameField.setEditable(false);
-				dateField.setEditable(false);
+				//dateField.setEditable(false);
 				saveButton.setEnabled(false);
+				dateChooser.setEnabled(true);
 				editButton.setEnabled(true);
 				System.out.println("hi");
 				
 			}
 		}
 		if (event.getSource().equals(findButton)) {
+			JFrame findForm = new JFrame();
+			findForm.setVisible(true);
 			saveButton.setEnabled(false);
 			editButton.setEnabled(true);
 			JTextField findField;
 			JButton okButton; 
-			JFrame findForm = new JFrame();
-			JPanel findPanel = new JPanel();
+			
+			findForm.setDefaultCloseOperation(EXIT_ON_CLOSE);
+			JPanel findPanel = new JPanel();			
 			JPanel labelsPanel = new JPanel();
 			JPanel textFieldsPanel = new JPanel();
 			findPanel.setLayout(new BorderLayout());
 			labelsPanel.setLayout(new GridLayout(1, 1));
 			textFieldsPanel.setLayout(new GridLayout(1, 1));
 			labelsPanel.add(new JLabel("Search:"));
-			textFieldsPanel.add(findField = new JTextField());			
+			textFieldsPanel.add(findField = new JTextField());
 			findPanel.add(labelsPanel, "West");
 			findPanel.add(textFieldsPanel, "Center");
 			findPanel.add(okButton = new JButton("OK"), "South");
@@ -476,17 +494,20 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				public void actionPerformed(ActionEvent e) {
 					TreePath path = theAppModel.findPerson(findField.getText());
 					if (path != null) {
-						theTree.scrollPathToVisible(path);
+						theTree.scrollPathToVisible(path);						
+						//System.out.println("hello");
+						findForm.setVisible(true);
+					}
+					else {
 						java.awt.Toolkit tk = Toolkit.getDefaultToolkit();
 						tk.beep();
-						System.out.println("hello");
-						findForm.setVisible(true);
 					}
 				}
 			});
+			
 			findForm.add(findPanel);
 			findForm.setSize(400, 100);
-			findForm.setVisible(true);
+			
 			
 		}
 
@@ -496,7 +517,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		if (event.getSource().equals(deleteButton)) {
 			if (selectedNode.getParent() != null)
 				theAppModel.deletePerson(selectedNode);
-			dateField.setText("");
+			//dateField.setText("");
 			nameField.setText("");
 			idField.setText("");
 			photoField.setText("");
@@ -504,7 +525,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 			idField.setEditable(false);
 			photoField.setEditable(false);
 			nameField.setEditable(false);
-			dateField.setEditable(false);
+			dateChooser.setEnabled(false);
 			saveButton.setEnabled(false);
 			return;
 		}
@@ -520,7 +541,8 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 
 		if (selectedNode != null && selectedNode.getUserObject() instanceof DictionaryEntry) {
 			nameField.setText(((DictionaryEntry) selectedNode.getUserObject()).getValue());
-			dateField.setText(((DictionaryEntry) selectedNode.getUserObject()).getBirth());
+			dateChooser.setDate(((DictionaryEntry) selectedNode.getUserObject()).getBirth());
+			//setText(((DictionaryEntry) selectedNode.getUserObject()).getBirth());
 			idField.setText(((DictionaryEntry) selectedNode.getUserObject()).getId());
 			photoField.setText(((DictionaryEntry) selectedNode.getUserObject()).getPhoto());
 			editButton.setEnabled(true);
@@ -529,10 +551,10 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 			idField.setEditable(false);
 			photoField.setEditable(false);
 			nameField.setEditable(false);
-			dateField.setEditable(false);
+			dateChooser.setEnabled(false);
 		} else {
 			nameField.setText("");
-			dateField.setText("");
+			//dateField.setText("");
 			idField.setText("");
 			photoField.setText("");
 			editButton.setEnabled(false);
@@ -540,7 +562,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 			idField.setEditable(false);
 			photoField.setEditable(false);
 			nameField.setEditable(false);
-			dateField.setEditable(false);
+			dateChooser.setEnabled(false);
 		}
 
 	}
