@@ -1,4 +1,6 @@
 import java.awt.event.*;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.awt.*;
 import java.util.Date;
 import java.util.Enumeration;
@@ -6,6 +8,8 @@ import com.toedter.calendar.JDateChooser;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.text.JTextComponent;
+import javax.swing.text.MaskFormatter;
+import javax.swing.text.NumberFormatter;
 import javax.swing.tree.*;
 
 class DictionaryAnchor {
@@ -84,7 +88,8 @@ class DictionaryEntry extends DictionaryElem {
 		return theName;
 	}
 
-	public Date getBirth() {
+	public Date getBirth() { 
+		
 		return birth;
 	}
 
@@ -255,7 +260,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 	private JButton saveButton;
 	JTextField nameField;
 	//JTextField dateField;
-	JTextField idField;
+	JFormattedTextField idField;
 	JTextField photoField;
 
 	private JButton changeLookFeelButton;
@@ -289,6 +294,9 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		dateChooser.setBounds(20, 20, 200, 20);
 		dateChooser.setDateFormatString("dd.MM.yyyy");
 		
+		
+		
+		
 		labels.add(new JLabel("Full name:"));
 		textFields.add(nameField = new JTextField());
 		nameField.setEditable(false);
@@ -298,7 +306,8 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		textFields.add(dateChooser);
 		dateChooser.setEnabled(false);
 		labels.add(new JLabel("ID:"));
-		textFields.add(idField = new JTextField());
+		textFields.add(idField = new JFormattedTextField(
+                createFormatter("###-###-####")));
 		idField.setEditable(false);
 		labels.add(new JLabel("Photo:"));
 		textFields.add(photoField = new JTextField());
@@ -364,6 +373,16 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 			System.out.println("Exception 1");
 		}
 	}
+	protected static MaskFormatter createFormatter(String s) {
+		MaskFormatter formatter = null;
+		try {
+		    formatter = new MaskFormatter(s);
+		} catch (java.text.ParseException exc) {
+		    System.err.println("formatter is bad: " + exc.getMessage());
+		    System.exit(-1);
+		}
+		return formatter;
+		}
 
 	public void actionPerformed(ActionEvent event) {
 		
@@ -397,9 +416,11 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				dateChooser1 = new JDateChooser();
 				dateChooser1.setBounds(20, 20, 200, 20);
 				dateChooser1.setDateFormatString("dd.MM.yyyy");
+				
+				JFormattedTextField idField;
 				JButton okButton;
 				JTextField nameField;
-				JTextField idField;
+				//JTextField idField;
 				JTextField photoField;
 				JFrame insertForm = new JFrame();
 				JPanel insertPanel = new JPanel();
@@ -413,12 +434,13 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				labelsPanel.add(new JLabel("Date of Birth:"));
 				textFieldsPanel.add(dateChooser1);
 				labelsPanel.add(new JLabel("ID:"));
-				textFieldsPanel.add(idField = new JTextField());
+				textFieldsPanel.add(idField = new JFormattedTextField(
+	                    createFormatter("###-###-####")));
 				labelsPanel.add(new JLabel("Photo:"));
 				textFieldsPanel.add(photoField = new JTextField());
 				insertPanel.add(labelsPanel, "West");
 				insertPanel.add(textFieldsPanel, "Center");
-				insertPanel.add(okButton = new JButton("OK"), "South"); 
+				insertPanel.add(okButton = new JButton("OK"), "South");
 				okButton.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
@@ -461,10 +483,10 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				idField.setEditable(false);
 				photoField.setEditable(false);
 				nameField.setEditable(false);
-				//dateField.setEditable(false);
+				dateChooser.setEnabled(false);
 				saveButton.setEnabled(false);
-				dateChooser.setEnabled(true);
-				editButton.setEnabled(true);
+				dateChooser.setEnabled(false);
+				editButton.setEnabled(false);
 				System.out.println("hi");
 				
 			}
@@ -574,6 +596,5 @@ public class Tree_GUI {
 		SwingGUI5Model theAppModel = new SwingGUI5Model();
 		SwingGUI5 theFrame = new SwingGUI5(theAppModel);
 		theFrame.show();
-
 	}
 }
