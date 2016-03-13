@@ -475,9 +475,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 			saveButton.setEnabled(false);
 			editButton.setEnabled(true);
 			JTextField findField;
-			JButton okButton; 
-			
-			findForm.setDefaultCloseOperation(EXIT_ON_CLOSE);
+			JButton okButton;
 			JPanel findPanel = new JPanel();			
 			JPanel labelsPanel = new JPanel();
 			JPanel textFieldsPanel = new JPanel();
