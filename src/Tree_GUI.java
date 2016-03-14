@@ -1,11 +1,22 @@
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.awt.*;
 import java.util.Date;
 import java.util.Enumeration;
 import com.toedter.calendar.JDateChooser;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.text.JTextComponent;
+import javax.swing.text.MaskFormatter;
 import javax.swing.tree.*;
 
 class DictionaryAnchor {
@@ -49,15 +60,22 @@ class DictionaryEntry extends DictionaryElem {
 	protected Date birth;
 	protected String photo;
 	// protected String theAddress;
-	protected String id;
+	protected String number;
+	protected BufferedImage image;
+	protected String surname;
 
-	public DictionaryEntry(String name, Date birth, String id, String photo) {
+	public DictionaryEntry(String surname, String name, Date birth, String number, String photo) throws IOException {
+		this.surname = surname;
 		theName = name;
 		this.birth = birth;
-		this.id = id;
+		this.number = number;
 		this.photo = photo;
-		// theAddress = address;
-
+		if (this.photo.equals("")) {
+			image = ImageIO.read(new File("C:\\Users\\Alexander\\Documents\\аноним.jpg"));
+			this.photo = "C:\\Users\\Alexander\\Documents\\аноним.jpg";
+		} else {
+			image = ImageIO.read(new File(photo));
+		}
 	}
 
 	public DictionaryEntry(String completeStr) {
@@ -68,7 +86,7 @@ class DictionaryEntry extends DictionaryElem {
 			delim_index = length;
 		}
 
-		theName = completeStr.substring(0, delim_index);
+		surname = completeStr.substring(0, delim_index);
 		// theAddress = completeStr.substring(delim_index);
 	}
 
@@ -77,22 +95,39 @@ class DictionaryEntry extends DictionaryElem {
 	}
 
 	public String getValue() {
+		return surname;
+	}
+
+	public String getName() {
 		return theName;
 	}
 
+	public String getSurname() {
+		return surname;
+	}
+
 	public String toString() {
-		return theName;
+		return surname;
 	}
 
 	public Date getBirth() {
 		return birth;
 	}
 
-	public String getId() {
-		return id;
+	public String getNumber() {
+		return number;
 	}
 
-	public String getPhoto() {
+	public boolean imageExists() {
+		File file = new File(photo);
+		return file.exists();
+	}
+
+	public BufferedImage getPhoto() {
+		return image;
+	}
+
+	public String getPath() {
 		return photo;
 	}
 
@@ -138,14 +173,14 @@ class SwingGUI5Model {
 		}
 	}
 
-	public TreePath insertPerson(String name, Date birth, String id, String photo) {
+	public TreePath insertPerson(String surname, String name, Date birth, String id, String photo) throws IOException {
 		TreePath path;
 		DictionaryAnchor anchor = new DictionaryAnchor();
 
 		anchor.topic = null;
 		anchor.entry = null;
 
-		DictionaryEntry new_entry = new DictionaryEntry(name, birth, id, photo);
+		DictionaryEntry new_entry = new DictionaryEntry(surname, name, birth, id, photo);
 
 		if (this.findEntry(new_entry, anchor)) {
 			// found such a person
@@ -240,12 +275,45 @@ class SwingGUI5Model {
 		return theModel;
 	}
 
+	public void clean() {
+		DictionaryAnchor anchor = new DictionaryAnchor();
+		@SuppressWarnings("rawtypes")
+		Enumeration en1 = theRoot.children();
+		while (en1.hasMoreElements()) {
+			DefaultMutableTreeNode node1 = (DefaultMutableTreeNode) en1.nextElement();
+
+			DictionaryElem elem1 = (DictionaryElem) node1.getUserObject();
+			if ("Topic".equals(elem1.getType()))
+				anchor.topic = node1;
+
+			if (anchor.topic != null) {
+				@SuppressWarnings("rawtypes")
+				Enumeration en2 = anchor.topic.children();
+				anchor.entry = null;
+
+				while (en2.hasMoreElements()) {
+					DefaultMutableTreeNode node2 = (DefaultMutableTreeNode) en2.nextElement();
+
+					DictionaryEntry elem2 = (DictionaryEntry) node2.getUserObject();
+					if ("Entry".equals(elem2.getType())) {
+						removeNodeFromParent(node2);
+					}
+				}
+			}
+
+		}
+	}
+
 }
 
 // -----------------------------------------------------------Ч
 class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener {
 	private SwingGUI5Model theAppModel;
-	private JDateChooser dateChooser;
+	private JMenuBar menuBar;
+	private JMenu menu;
+	private JMenuItem menuNew;
+	private JMenuItem menuSave;
+	private JMenuItem menuLoad;
 	private JTree theTree;
 	private JTextArea theTextArea;
 	private JButton insertButton;
@@ -254,9 +322,18 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 	private JButton editButton;
 	private JButton saveButton;
 	JTextField nameField;
-	//JTextField dateField;
-	JTextField idField;
-	JTextField photoField;
+	JTextField surnameField;
+	JButton explorer;
+	JPanel imPanel = new JPanel();
+	JPanel info = new JPanel();
+	JPanel labels = new JPanel();
+	JPanel panel = new JPanel();
+	JPanel form = new JPanel();
+	JPanel textFields = new JPanel();
+	String bufferedPath = new String();
+	String defaultPath = "C:\\Users\\Alexander\\Documents\\аноним.jpg";
+	private JDateChooser dateChooser;
+	JTextField numberField;
 
 	private JButton changeLookFeelButton;
 
@@ -266,61 +343,212 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 
 	private int current;
 
-	protected Component buildGUI() {
+	private void saveTo(String fileName) throws IOException {
+		File file = new File(fileName);
+		file.createNewFile();
+		PrintWriter out = new PrintWriter(file.getAbsoluteFile());
+		Object o = theTree.getModel().getRoot();
+		DictionaryEntry elem;
+		DefaultMutableTreeNode node, nodeElem;
+		@SuppressWarnings("rawtypes")
+		Enumeration en;
+		SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+		for (int i = 0; i < theTree.getModel().getChildCount(o); i++) {
+			node = (DefaultMutableTreeNode) theTree.getModel().getChild(o, i);
+
+			en = node.children(); // get all instances of current
+									// node
+			while (en.hasMoreElements()) {
+				nodeElem = (DefaultMutableTreeNode) en.nextElement();
+
+				elem = (DictionaryEntry) nodeElem.getUserObject(); // get
+																	// instance
+				out.println(elem.getSurname() + " " + elem.getName() + " " + dateFormat.format(elem.getBirth()) + " "
+						+ elem.getNumber() + " " + elem.getPath());
+			}
+
+		}
+		out.close();
+	}
+
+	private void loadFrom(String fileName) throws IOException {
+		File file = new File(fileName);
+
+		BufferedReader in = new BufferedReader(new FileReader(file.getAbsoluteFile()));
+
+		String s;
+		while ((s = in.readLine()) != null) {
+			SimpleDateFormat format = new SimpleDateFormat();
+			format.applyPattern("dd.MM.yyyy");
+			try {
+				Date tmp = format.parse(s.split(" ")[2]);
+				theAppModel.insertPerson(s.split(" ")[0], s.split(" ")[1], tmp, s.split(" ")[3], s.split(" ")[4]);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+
+		}
+		in.close();
+	}
+
+	protected Component buildGUI() throws IOException {
 
 		Container contentPane = this.getContentPane();
 		// contentPane.setLayout (new FlowLayout());
+		menuBar = new JMenuBar();
+		menu = new JMenu("Menu");
+		menu.setMnemonic(KeyEvent.VK_M);
+		menuBar.add(menu);
+		menuNew = new JMenuItem("Clear");
+		menu.add(menuNew);
+		menuNew.setMnemonic(KeyEvent.VK_C);
+		menuNew.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				theAppModel.clean();
+			}
+		});
+		menuSave = new JMenuItem("Save");
+		menu.add(menuSave);
+		menuSave.setMnemonic(KeyEvent.VK_S);
+		menuSave.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String fileName = null;
+				JFileChooser chooser = new JFileChooser();
+				chooser.setCurrentDirectory(new java.io.File("."));
+				chooser.setDialogTitle("Select destination");
+				chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+				chooser.setAcceptAllFileFilterUsed(false);
 
+				if (chooser.showSaveDialog(menuSave) == JFileChooser.APPROVE_OPTION) {
+					System.out.println("getSelectedFile(): " + chooser.getSelectedFile());
+					fileName = chooser.getSelectedFile().toString();
+				}
+
+				try {
+					saveTo(fileName);
+				} catch (IOException e1) {
+					JOptionPane.showMessageDialog(null, "File error!");
+				}
+			}
+		});
+		menuLoad = new JMenuItem("Load");
+		menu.add(menuLoad);
+		menuLoad.setMnemonic(KeyEvent.VK_L);
+		menuLoad.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				String fileName = null;
+				JFileChooser chooser = new JFileChooser();
+				chooser.setCurrentDirectory(new java.io.File("."));
+				chooser.setDialogTitle("Select destination");
+				chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+				chooser.setAcceptAllFileFilterUsed(false);
+
+				if (chooser.showOpenDialog(menuLoad) == JFileChooser.APPROVE_OPTION) {
+					fileName = chooser.getSelectedFile().toString();
+
+					try {
+						theAppModel.clean();
+						loadFrom(fileName);
+					} catch (IOException e1) {
+						JOptionPane.showMessageDialog(null, "File error!");
+					}
+				}
+
+			}
+		});
+		this.setJMenuBar(menuBar);
 		theTree = new JTree(theAppModel.buildDefaultTreeStructure());
 		// theTree.setEditable(true);
 		theTree.addTreeSelectionListener(this);
 		int mode = TreeSelectionModel.SINGLE_TREE_SELECTION;
 		theTree.getSelectionModel().setSelectionMode(mode);
 		theTextArea = new JTextArea();
-		JPanel labels = new JPanel();
-		JPanel panel = new JPanel();
-		JPanel form = new JPanel();
-		JPanel textFields = new JPanel();
-		textFields.setLayout(new GridLayout(4, 1));
-		labels.setLayout(new GridLayout(4, 1));
+		info.setLayout(new FlowLayout(SwingConstants.VERTICAL));
+		info.add(imPanel);
+		BufferedImage tmp = ImageIO.read(new File(defaultPath));
+		JLabel lpic = new JLabel();
+		lpic.setIcon(new ImageIcon(tmp.getScaledInstance(128, 128, Image.SCALE_AREA_AVERAGING)));
+		imPanel.add(lpic);
+
+		lpic.setHorizontalAlignment(SwingConstants.CENTER);
+		info.add(form);
+		textFields.setLayout(new GridLayout(5, 1));
+		labels.setLayout(new GridLayout(5, 1));
+		dateChooser = new JDateChooser();
 		panel.setLayout(new GridLayout(1, 2));
 		form.setLayout(new BorderLayout());
-		dateChooser = new JDateChooser();
-		dateChooser.setBounds(20, 20, 200, 20);
-		dateChooser.setDateFormatString("dd.MM.yyyy");
-		
-		labels.add(new JLabel("Full name:"));
+		labels.add(new JLabel("Surname:"));
+		textFields.add(surnameField = new JTextField());
+		surnameField.setEditable(false);
+		labels.add(new JLabel("Name:"));
 		textFields.add(nameField = new JTextField());
 		nameField.setEditable(false);
+
 		labels.add(new JLabel("Date of Birth:"));
-		//textFields.add(dateField = new JTextField());
-		//dateField.setEditable(false);
 		textFields.add(dateChooser);
 		dateChooser.setEnabled(false);
-		labels.add(new JLabel("ID:"));
-		textFields.add(idField = new JTextField());
-		idField.setEditable(false);
+		labels.add(new JLabel("Number:"));
+		textFields.add(numberField = new JFormattedTextField(createFormatter("+7(###)-###-####")));
+		// textFields.add(numberField = new JTextField());
+		numberField.setEditable(false);
 		labels.add(new JLabel("Photo:"));
-		textFields.add(photoField = new JTextField());
-		photoField.setEditable(false);
+		textFields.add(explorer = new JButton("Open explorer"));
+		explorer.setEnabled(false);
 		form.add(labels, "West");
 		form.add(textFields, "Center");
 		panel.add(new JScrollPane(theTree));
-		panel.add(form);
+		panel.add(info);
 		contentPane.add(panel, "Center");
-		JPanel panelButton = new JPanel();
-		
-		//dateField.add(dateChooser);
-		
+		JPanel panelButton = new JPanel(new GridLayout(2, 1));
+		JPanel panelButUp = new JPanel();
+		JPanel panelButDown = new JPanel();
+		panelButton.add(panelButUp);
+		panelButton.add(panelButDown);
+		explorer.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// Create window for choosing an image
+				JFileChooser img_chooser = new JFileChooser();
+				img_chooser.setCurrentDirectory(new java.io.File("."));
+				img_chooser.setDialogTitle("Select image");
+				img_chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+				img_chooser.setAcceptAllFileFilterUsed(false);
 
-		insertButton = new JButton("Insert Person");
+				if (img_chooser.showOpenDialog(explorer) == JFileChooser.APPROVE_OPTION) {
+					if (img_chooser.getSelectedFile().toString().contains(".jpg")) {
+						bufferedPath = img_chooser.getSelectedFile().toString();
+						BufferedImage tmp = null;
+						try {
+							tmp = ImageIO.read(new File(bufferedPath));
+							imPanel.removeAll();
+							lpic.setIcon(new ImageIcon(tmp.getScaledInstance(128, 128, Image.SCALE_AREA_AVERAGING)));
+							imPanel.add(lpic);
+							imPanel.updateUI();
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+					} else {
+						bufferedPath = "";
+						JOptionPane.showMessageDialog(null, "File error!");
+					}
+				}
+			}
+		});
+
+		insertButton = new JButton("Insert Person (Alt+I)");
 		insertButton.addActionListener(this);
-
+		insertButton.setMnemonic(KeyEvent.VK_I);
 		deleteButton = new JButton("Delete");
 		deleteButton.addActionListener(this);
 
-		findButton = new JButton("Find");
+		findButton = new JButton("Find (Alt+F)");
 		findButton.addActionListener(this);
+		findButton.setMnemonic(KeyEvent.VK_F);
 		saveButton = new JButton("Save Changes");
 		saveButton.addActionListener(this);
 		saveButton.setEnabled(false);
@@ -331,22 +559,22 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		changeLookFeelButton = new JButton("change Look & Feel");
 		changeLookFeelButton.addActionListener(this);
 
-		panelButton.add(insertButton);
-		panelButton.add(deleteButton);
-		panelButton.add(findButton);
-		panelButton.add(editButton);
-		panelButton.add(changeLookFeelButton);
-		panelButton.add(saveButton);
+		panelButUp.add(insertButton);
+		panelButUp.add(deleteButton);
+		panelButUp.add(findButton);
+		panelButUp.add(editButton);
+		panelButUp.add(saveButton);
+		panelButDown.add(changeLookFeelButton);
 		contentPane.add(panelButton, "South");
 
 		return null;
 	}
 
-	public SwingGUI5(SwingGUI5Model appModel) {
+	public SwingGUI5(SwingGUI5Model appModel) throws IOException {
 		theAppModel = appModel;
-		
+
 		setTitle("Tree example with model");
-		setSize(800, 200);
+		setSize(800, 300);
 
 		addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
@@ -365,9 +593,18 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		}
 	}
 
+	protected static MaskFormatter createFormatter(String s) {
+		MaskFormatter formatter = null;
+		try {
+			formatter = new MaskFormatter(s);
+		} catch (java.text.ParseException exc) {
+			System.err.println("formatter is bad: " + exc.getMessage());
+			System.exit(-1);
+		}
+		return formatter;
+	}
+
 	public void actionPerformed(ActionEvent event) {
-		
-		
 		DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) theTree.getLastSelectedPathComponent();
 
 		String textVal = "";
@@ -399,137 +636,195 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 				dateChooser1.setDateFormatString("dd.MM.yyyy");
 				JButton okButton;
 				JTextField nameField;
-				JTextField idField;
-				JTextField photoField;
+				JTextField surnameField;
+				JTextField numberField;
+				final JButton insertExplorer = new JButton("Open explorer");
 				JFrame insertForm = new JFrame();
 				JPanel insertPanel = new JPanel();
 				JPanel labelsPanel = new JPanel();
 				JPanel textFieldsPanel = new JPanel();
 				insertPanel.setLayout(new BorderLayout());
-				labelsPanel.setLayout(new GridLayout(4, 1));
-				textFieldsPanel.setLayout(new GridLayout(4, 1));
-				labelsPanel.add(new JLabel("Full name:"));
+				labelsPanel.setLayout(new GridLayout(5, 1));
+				textFieldsPanel.setLayout(new GridLayout(5, 1));
+				labelsPanel.add(new JLabel("Surname:"));
+				textFieldsPanel.add(surnameField = new JTextField());
+				labelsPanel.add(new JLabel("Name:"));
 				textFieldsPanel.add(nameField = new JTextField());
 				labelsPanel.add(new JLabel("Date of Birth:"));
 				textFieldsPanel.add(dateChooser1);
-				labelsPanel.add(new JLabel("ID:"));
-				textFieldsPanel.add(idField = new JTextField());
+				labelsPanel.add(new JLabel("Number:"));
+				textFieldsPanel.add(numberField = new JFormattedTextField(createFormatter("+7(###)-###-####")));
+				// textFieldsPanel.add(numberField = new JTextField());
 				labelsPanel.add(new JLabel("Photo:"));
-				textFieldsPanel.add(photoField = new JTextField());
+				textFieldsPanel.add(insertExplorer);
 				insertPanel.add(labelsPanel, "West");
 				insertPanel.add(textFieldsPanel, "Center");
-				insertPanel.add(okButton = new JButton("OK"), "South"); 
+				insertPanel.add(okButton = new JButton("OK"), "South");
 				okButton.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
 						// theAppModel.insertPerson(nameField.getText());
-						TreePath path = theAppModel.insertPerson(nameField.getText(), dateChooser1.getDate(),
-								idField.getText(), photoField.getText());
-						if (path != null) {
-							theTree.scrollPathToVisible(path);
+						if (((nameField.getText().equals(""))) || ((numberField.getText().contains(" ")))
+								|| ((nameField.getText().contains(" "))) || ((surnameField.getText().contains(" ")))
+								|| ((surnameField.equals(""))) || (dateChooser1.isValid())) {
+							JOptionPane.showMessageDialog(null, "Invalid Input!");
+						} else {
+							TreePath path;
+							SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+							try {
+								path = theAppModel.insertPerson(surnameField.getText(), nameField.getText(),
+										dateChooser1.getDate(), numberField.getText(), bufferedPath);
+								bufferedPath = "";
+								if (path != null) {
+									theTree.scrollPathToVisible(path);
+								}
+								System.out.println("hi");
+								insertForm.setVisible(false);
+							} catch (IOException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
 						}
-						System.out.println("hi");
-						insertForm.setVisible(false);
+					}
+
+				});
+
+				insertExplorer.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						JFileChooser img_chooser = new JFileChooser();
+						img_chooser.setCurrentDirectory(new java.io.File("."));
+						img_chooser.setDialogTitle("Select image");
+						img_chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+						img_chooser.setAcceptAllFileFilterUsed(false);
+
+						if (img_chooser.showOpenDialog(insertExplorer) == JFileChooser.APPROVE_OPTION) {
+							if (img_chooser.getSelectedFile().toString().contains(".jpg"))
+								bufferedPath = img_chooser.getSelectedFile().toString();
+							else {
+								bufferedPath = "";
+								JOptionPane.showMessageDialog(null, "File error!");
+							}
+						}
+
 					}
 				});
 				insertForm.add(insertPanel);
 				insertForm.setSize(400, 200);
 				insertForm.setVisible(true);
-				
-				
+
 				// TreePath path = theAppModel.insertPerson(textVal);
 				// if (path != null) {
 				// theTree.scrollPathToVisible(path);
 			}
-			if(event.getSource().equals(editButton)){
-				idField.setEditable(true);
-				photoField.setEditable(true);
+			if (event.getSource().equals(editButton)) {
+				numberField.setEditable(true);
+				explorer.setEnabled(true);
 				nameField.setEditable(true);
-				//dateField.setEditable(true);
-				saveButton.setEnabled(true);
+				surnameField.setEditable(true);
 				dateChooser.setEnabled(true);
+				saveButton.setEnabled(true);
 				editButton.setEnabled(false);
 			}
-			if(event.getSource().equals(saveButton)){
+			if (event.getSource().equals(saveButton)) {
+				if (((nameField.getText().equals(""))) || ((numberField.getText().contains(" ")))
+						|| ((nameField.getText().contains(" "))) || ((surnameField.getText().contains(" ")))
+						|| ((surnameField.equals("")))) {
+					JOptionPane.showMessageDialog(null, "Invalid Input!");
+				} else {
+					if (selectedNode.getParent() != null)
+						theAppModel.deletePerson(selectedNode);
+					TreePath path;
+					try {
+						path = theAppModel.insertPerson(surnameField.getText(), nameField.getText(),
+								dateChooser.getDate(), numberField.getText(), bufferedPath);
+						bufferedPath = "";
+						if (path != null) {
+							theTree.scrollPathToVisible(path);
+						}
+						numberField.setEditable(false);
+						explorer.setFocusable(false);
+						nameField.setEditable(false);
+						dateChooser.setEnabled(false);
+						saveButton.setEnabled(false);
+						surnameField.setEditable(false);
+						editButton.setEnabled(true);
+						System.out.println("hi");
+
+					} catch (IOException e) {
+						e.printStackTrace();
+
+					}
+				}
+			}
+			if (event.getSource().equals(findButton)) {
+				JFrame findForm = new JFrame();
+				findForm.setVisible(true);
+				saveButton.setEnabled(false);
+				JTextField findField;
+				JButton okButton;
+				JPanel findPanel = new JPanel();
+				JPanel labelsPanel = new JPanel();
+				JPanel textFieldsPanel = new JPanel();
+				findPanel.setLayout(new BorderLayout());
+				labelsPanel.setLayout(new GridLayout(1, 1));
+				textFieldsPanel.setLayout(new GridLayout(1, 1));
+				labelsPanel.add(new JLabel("Search:"));
+				textFieldsPanel.add(findField = new JTextField());
+				findPanel.add(labelsPanel, "West");
+				findPanel.add(textFieldsPanel, "Center");
+				findPanel.add(okButton = new JButton("OK"), "South");
+				okButton.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						TreePath path = theAppModel.findPerson(findField.getText());
+						if (path != null) {
+							theTree.scrollPathToVisible(path);
+							// System.out.println("hello");
+							findForm.setVisible(true);
+						} else {
+							java.awt.Toolkit tk = Toolkit.getDefaultToolkit();
+							tk.beep();
+						}
+					}
+				});
+
+				findForm.add(findPanel);
+				findForm.setSize(400, 100);
+			}
+
+			if (selectedNode == null)
+				return;
+
+			if (event.getSource().equals(deleteButton)) {
 				if (selectedNode.getParent() != null)
 					theAppModel.deletePerson(selectedNode);
-				TreePath path = theAppModel.insertPerson(nameField.getText(), dateChooser.getDate(),
-						idField.getText(), photoField.getText());
-				if (path != null) {
-					theTree.scrollPathToVisible(path);
+				surnameField.setText("");
+				nameField.setText("");
+				numberField.setText("");
+				dateChooser.setDate(null);
+				BufferedImage tmp = null;
+				try {
+					tmp = ImageIO.read(new File(defaultPath));
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
-				idField.setEditable(false);
-				photoField.setEditable(false);
+				JLabel lpic = new JLabel();
+				lpic.setIcon(new ImageIcon(tmp.getScaledInstance(128, 128, Image.SCALE_AREA_AVERAGING)));
+				imPanel.removeAll();
+				imPanel.add(lpic);
+				imPanel.updateUI();
+				editButton.setEnabled(false);
+				numberField.setEditable(false);
+				explorer.setEnabled(false);
 				nameField.setEditable(false);
-				//dateField.setEditable(false);
+				dateChooser.setEnabled(false);
 				saveButton.setEnabled(false);
-				dateChooser.setEnabled(true);
-				editButton.setEnabled(true);
-				System.out.println("hi");
-				
+				return;
 			}
-		}
-		if (event.getSource().equals(findButton)) {
-			JFrame findForm = new JFrame();
-			findForm.setVisible(true);
-			saveButton.setEnabled(false);
-			editButton.setEnabled(true);
-			JTextField findField;
-			JButton okButton; 
-			
-			findForm.setDefaultCloseOperation(EXIT_ON_CLOSE);
-			JPanel findPanel = new JPanel();			
-			JPanel labelsPanel = new JPanel();
-			JPanel textFieldsPanel = new JPanel();
-			findPanel.setLayout(new BorderLayout());
-			labelsPanel.setLayout(new GridLayout(1, 1));
-			textFieldsPanel.setLayout(new GridLayout(1, 1));
-			labelsPanel.add(new JLabel("Search:"));
-			textFieldsPanel.add(findField = new JTextField());
-			findPanel.add(labelsPanel, "West");
-			findPanel.add(textFieldsPanel, "Center");
-			findPanel.add(okButton = new JButton("OK"), "South");
-			okButton.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					TreePath path = theAppModel.findPerson(findField.getText());
-					if (path != null) {
-						theTree.scrollPathToVisible(path);						
-						//System.out.println("hello");
-						findForm.setVisible(true);
-					}
-					else {
-						java.awt.Toolkit tk = Toolkit.getDefaultToolkit();
-						tk.beep();
-					}
-				}
-			});
-			
-			findForm.add(findPanel);
-			findForm.setSize(400, 100);
-			
-			
-		}
 
-		if (selectedNode == null)
-			return;
-
-		if (event.getSource().equals(deleteButton)) {
-			if (selectedNode.getParent() != null)
-				theAppModel.deletePerson(selectedNode);
-			//dateField.setText("");
-			nameField.setText("");
-			idField.setText("");
-			photoField.setText("");
-			editButton.setEnabled(false);
-			idField.setEditable(false);
-			photoField.setEditable(false);
-			nameField.setEditable(false);
-			dateChooser.setEnabled(false);
-			saveButton.setEnabled(false);
-			return;
 		}
-
 	}
 
 	public void valueChanged(TreeSelectionEvent event) {
@@ -540,29 +835,51 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 		DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) path.getLastPathComponent();
 
 		if (selectedNode != null && selectedNode.getUserObject() instanceof DictionaryEntry) {
-			nameField.setText(((DictionaryEntry) selectedNode.getUserObject()).getValue());
+
+			imPanel.removeAll();
+			surnameField.setText(((DictionaryEntry) selectedNode.getUserObject()).getSurname());
+			nameField.setText(((DictionaryEntry) selectedNode.getUserObject()).getName());
+
 			dateChooser.setDate(((DictionaryEntry) selectedNode.getUserObject()).getBirth());
-			//setText(((DictionaryEntry) selectedNode.getUserObject()).getBirth());
-			idField.setText(((DictionaryEntry) selectedNode.getUserObject()).getId());
-			photoField.setText(((DictionaryEntry) selectedNode.getUserObject()).getPhoto());
+
+			numberField.setText(((DictionaryEntry) selectedNode.getUserObject()).getNumber());
+			JLabel lpic = new JLabel(new ImageIcon(((DictionaryEntry) selectedNode.getUserObject()).getPhoto()
+					.getScaledInstance(128, 128, Image.SCALE_AREA_AVERAGING)));
+			imPanel.add(lpic);
+			imPanel.updateUI();
 			editButton.setEnabled(true);
 			deleteButton.setEnabled(true);
 			saveButton.setEnabled(false);
-			idField.setEditable(false);
-			photoField.setEditable(false);
+			numberField.setEditable(false);
+			explorer.setEnabled(false);
 			nameField.setEditable(false);
+			surnameField.setEditable(false);
 			dateChooser.setEnabled(false);
+
 		} else {
 			nameField.setText("");
-			//dateField.setText("");
-			idField.setText("");
-			photoField.setText("");
+			surnameField.setText("");
+			dateChooser.setDate(null);
+			numberField.setText("");
 			editButton.setEnabled(false);
 			deleteButton.setEnabled(false);
-			idField.setEditable(false);
-			photoField.setEditable(false);
+			numberField.setEditable(false);
+			explorer.setEnabled(false);
 			nameField.setEditable(false);
+			surnameField.setEditable(false);
 			dateChooser.setEnabled(false);
+			BufferedImage tmp = null;
+			try {
+				tmp = ImageIO.read(new File(defaultPath));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			JLabel lpic = new JLabel();
+			lpic.setIcon(new ImageIcon(tmp.getScaledInstance(128, 128, Image.SCALE_AREA_AVERAGING)));
+			imPanel.removeAll();
+			imPanel.add(lpic);
+			imPanel.updateUI();
 		}
 
 	}
@@ -572,7 +889,7 @@ class SwingGUI5 extends JFrame implements ActionListener, TreeSelectionListener 
 // ------------------------------------------------------------Ч
 public class Tree_GUI {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		SwingGUI5Model theAppModel = new SwingGUI5Model();
 		SwingGUI5 theFrame = new SwingGUI5(theAppModel);
 		theFrame.show();
